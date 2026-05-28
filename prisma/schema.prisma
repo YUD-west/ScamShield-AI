@@ -1,0 +1,309 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ScanType {
+  MESSAGE
+  URL
+  SCREENSHOT
+  EMAIL_HEADER
+  QR_CODE
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  passwordHash  String?
+  role          String    @default("user")
+  riskScore     Int       @default(0)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  scans         Scan[]
+  communityPosts CommunityPost[]
+  comments      Comment[]
+  quizScores    QuizScore[]
+  apiKeys       ApiKey[]
+  subscription  Subscription?
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  usageQuotas   UsageQuota[]
+
+  @@index([email])
+}
+
+model UsageQuota {
+  id        String   @id @default(cuid())
+  userId    String?
+  ipHash    String?
+  date      String
+  scanCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@unique([ipHash, date])
+  @@index([date])
+}
+
+model ScamKnowledge {
+  id        String   @id @default(cuid())
+  category  String
+  title     String
+  content   String
+  keywords  Json
+  embedding Json?
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Scan {
+  id          String    @id @default(cuid())
+  userId      String?
+  type        ScanType  @default(MESSAGE)
+  input             String
+  scamProbability   Float
+  riskLevel   RiskLevel
+  confidence  Float
+  createdAt   DateTime  @default(now())
+
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  aiResult    AIResult?
+  threatReport ThreatReport?
+  urls        UrlAnalysis[]
+  uploadedFile UploadedFile?
+
+  @@index([userId, createdAt])
+  @@index([riskLevel])
+}
+
+model AIResult {
+  id                    String   @id @default(cuid())
+  scanId                String   @unique
+  scamProbability       Float
+  riskLevel             RiskLevel
+  detectedTactics       Json
+  suspiciousKeywords    Json
+  maliciousLinks        Json
+  impersonatedBrand     String?
+  emotionalManipulation Json?
+  urgencyScore          Float
+  aiSummary             String
+  recommendedActions    Json
+  confidenceScore       Float
+  reasoningTrace        Json?
+  agentOutputs          Json?
+  createdAt             DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+}
+
+model ThreatReport {
+  id              String   @id @default(cuid())
+  scanId          String   @unique
+  attackCategory  String
+  indicators      Json
+  entities        Json
+  heatmapData     Json?
+  pdfUrl          String?
+  createdAt       DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+}
+
+model UrlAnalysis {
+  id              String   @id @default(cuid())
+  scanId          String?
+  url             String
+  domain          String
+  domainAge       Int?
+  sslValid        Boolean?
+  whoisData       Json?
+  dnsInfo         Json?
+  blacklisted     Boolean  @default(false)
+  redirectChain   Json?
+  typosquatting   Boolean  @default(false)
+  geoLocation     String?
+  reputationScore Float?
+  createdAt       DateTime @default(now())
+
+  scan Scan? @relation(fields: [scanId], references: [id], onDelete: SetNull)
+
+  @@index([domain])
+}
+
+model UploadedFile {
+  id        String   @id @default(cuid())
+  scanId    String   @unique
+  fileName  String
+  mimeType  String
+  size      Int
+  storagePath String
+  ocrText   String?
+  createdAt DateTime @default(now())
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+}
+
+model CommunityPost {
+  id          String   @id @default(cuid())
+  userId      String?
+  title       String
+  content     String
+  riskLevel   RiskLevel
+  category    String
+  upvotes     Int      @default(0)
+  anonymous   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments Comment[]
+
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String?
+  content   String
+  createdAt DateTime @default(now())
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model QuizScore {
+  id        String   @id @default(cuid())
+  userId    String
+  quizId    String
+  score     Int
+  total     Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  keyHash   String   @unique
+  prefix    String
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}

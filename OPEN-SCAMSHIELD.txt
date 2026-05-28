@@ -1,0 +1,19 @@
+SCAMSHIELD AI — correct URL only
+=================================
+
+WRONG (other projects on your PC):
+  http://localhost:3000  → YegnaFarm
+  http://localhost:3001  → DealArada
+  http://localhost:5173  → old apps
+
+CORRECT — ScamShield AI only:
+  http://localhost:3010
+
+Steps:
+  1. Open terminal
+  2. cd C:\Users\Administrator\scamshield-ai
+  3. npm run dev
+  4. Wait for: Local: http://localhost:3010
+  5. Open that URL in browser
+
+You should see "ScamShield AI" with dark cyber theme, NOT farming/marketplace.

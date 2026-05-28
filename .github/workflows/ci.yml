@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push
+        env:
+          DATABASE_URL: file:./prisma/ci.db
+      - run: npm run build
+        env:
+          AUTH_SECRET: ci-secret-min-32-characters-long-for-build
+          AUTH_URL: http://localhost:3011
+          NEXTAUTH_URL: http://localhost:3011
+          NEXT_PUBLIC_APP_URL: http://localhost:3011
+          DATABASE_URL: file:./prisma/ci.db
