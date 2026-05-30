@@ -6,7 +6,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build:render
+    buildCommand: bash scripts/render-build.sh
     startCommand: npm run start:render
     healthCheckPath: /api/health
     envVars:
