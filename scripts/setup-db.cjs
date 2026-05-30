@@ -18,8 +18,10 @@ try {
   console.warn("[scamshield] Seed skipped");
 }
 
-const url = process.env.DATABASE_URL || "file:./prisma/scamshield.db";
-if (url.startsWith("file:")) {
+const url = process.env.DATABASE_URL || "postgresql://postgres:local@localhost:5432/scamshield";
+if (url.startsWith("postgres")) {
+  console.log("\n[scamshield] Database configured: PostgreSQL\n");
+} else if (url.startsWith("file:")) {
   const rel = url.replace(/^file:/, "").replace(/^\//, "");
   const dbPath = path.join(process.cwd(), rel);
   if (fs.existsSync(dbPath)) {
