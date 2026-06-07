@@ -35,13 +35,25 @@ export async function GET() {
       scans24h,
       flaggedContent: Math.floor(auditLogs * 0.02),
     });
-  } catch {
-    return NextResponse.json({
-      auditLogs24h: 1204,
-      totalUsers: 842,
-      activeApiKeys: 89,
-      scans24h: 3842,
-      flaggedContent: 23,
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("[admin/stats] Database query failed:", {
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
     });
+
+    // Return error with 503 Service Unavailable status
+    return NextResponse.json(
+      {
+        auditLogs24h: 0,
+        totalUsers: 0,
+        activeApiKeys: 0,
+        scans24h: 0,
+        flaggedContent: 0,
+        _status: "degraded",
+        _error: "Database temporarily unavailable",
+      },
+      { status: 503 }
+    );
   }
 }

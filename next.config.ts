@@ -54,6 +54,16 @@ const nextConfig: NextConfig = {
           value: "camera=(), microphone=(), geolocation=()",
         },
         { key: "X-App", value: "ScamShield-AI" },
+        // HSTS - enforce HTTPS (production)
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=31536000; includeSubDomains; preload",
+        },
+        // CSP - prevent XSS attacks
+        {
+          key: "Content-Security-Policy",
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';",
+        },
       ],
     },
   ],
